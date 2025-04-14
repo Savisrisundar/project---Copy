@@ -33,6 +33,9 @@ const VoiceRecorder = () => {
   const timerIntervalRef = useRef(null);
   const timerStartTimeRef = useRef(0);
 
+  // Add this at the top of your component with other refs
+  const timerRef = useRef(0);
+
   // Safely close audio context
   const safelyCloseAudioContext = useCallback(() => {
     if (audioContextRef.current && 
@@ -188,6 +191,10 @@ const VoiceRecorder = () => {
     };
   }, [stopRecording, safelyCloseAudioContext, isRecording, audioUrl]);
 
+  useEffect(() => {
+    console.log("Recording time updated:", recordingTime);
+  }, [recordingTime]);
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -266,12 +273,18 @@ const VoiceRecorder = () => {
       mediaRecorderRef.current.start();
       setIsRecording(true);
       
-      // Start timer
+      // Reset the recording time
+      setRecordingTime(0);
+
+      // Set up the timer using refs
       timerStartTimeRef.current = Date.now();
+
+      // Use a more frequent interval for smoother timer updates
       timerIntervalRef.current = setInterval(() => {
-        const elapsedSeconds = Math.floor((Date.now() - timerStartTimeRef.current) / 1000);
-        setRecordingTime(elapsedSeconds);
-      }, 1000);
+        timerRef.current = Math.floor((Date.now() - timerStartTimeRef.current) / 1000);
+        console.log("Timer tick:", timerRef.current);
+        setRecordingTime(timerRef.current);
+      }, 100);
       
     } catch (err) {
       console.error('Error starting recording:', err);
@@ -463,29 +476,74 @@ const VoiceRecorder = () => {
           </div>
         </div>
         
-        {/* Recording Timer - updated with more prominent styling */}
-        <div className="recording-timer">
+        {/* Recording Status */}
+        <div className="recording-status" style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '15px auto 25px',
+          padding: '15px',
+          borderRadius: '10px',
+          background: isRecording ? 'rgba(255, 75, 75, 0.1)' : 'rgba(74, 99, 163, 0.1)',
+          border: isRecording ? '1px solid rgba(255, 75, 75, 0.3)' : '1px solid rgba(74, 99, 163, 0.3)',
+          boxShadow: isRecording ? '0 0 15px rgba(255, 75, 75, 0.2)' : 'none',
+          transition: 'all 0.3s ease',
+          width: '80%',
+          maxWidth: '300px'
+        }}>
           {isRecording ? (
-            <div className="recording-indicator">
-              <span className="recording-dot"></span>
-              <span>Recording</span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                background: '#ff4b4b',
+                animation: 'pulse 1.5s infinite'
+              }}></span>
+              <span style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: '#ff4b4b'
+              }}>Recording in progress...</span>
             </div>
           ) : recordingComplete ? (
-            <div className="recording-complete">Recording Complete</div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{
+                fontSize: '20px',
+                color: '#4CAF50'
+              }}>✓</span>
+              <span style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: '#4CAF50'
+              }}>Recording Complete</span>
+            </div>
           ) : (
-            <div>Ready to Record</div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{
+                fontSize: '20px',
+                color: '#7e56c2'
+              }}>🎤</span>
+              <span style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: '#7e56c2'
+              }}>Ready to Record</span>
+            </div>
           )}
-          <div 
-            ref={timerDisplayRef} 
-            className="timer"
-            style={{
-              fontSize: '28px',
-              fontWeight: 'bold',
-              color: isRecording ? '#ff4b4b' : 'inherit'
-            }}
-          >
-            {formatTime(recordingTime)}
-          </div>
         </div>
         
         {/* Controls */}
@@ -573,8 +631,13 @@ const VoiceRecorder = () => {
             50% { opacity: 0.3; }
           }
           
-          .timer {
-            transition: color 0.3s ease;
+          .timer-display {
+            animation: ${isRecording ? 'pulse-shadow 2s infinite' : 'none'};
+          }
+          
+          @keyframes pulse-shadow {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 75, 75, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(255, 75, 75, 0.5); }
           }
         `}
       </style>
